@@ -23,4 +23,4 @@ A aplicação oferece:
 🔗 (Adicione aqui o link da aplicação no Streamlit Cloud quando publicar)
 
 Exemplo:
-https://seu-usuario-seu-app.streamlit.app/
+https://fiap-kaue-fase4-provasub.streamlit.app/
