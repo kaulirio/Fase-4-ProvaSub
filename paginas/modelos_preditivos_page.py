@@ -12,7 +12,7 @@ import altair as alt
 
 from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from sklearn.linear_model import LinearRegression
@@ -25,8 +25,8 @@ from sklearn.ensemble import (
 # ==========================================================
 # Constantes
 # ==========================================================
-DB_PATH    = "preco_petroleo.db"
-TABLE_NAME = "preco_petroleo_raw"
+DB_PATH     = "preco_petroleo.db"
+TABLE_NAME  = "preco_petroleo_raw"
 RANDOM_SEED = 42
 
 # ==========================================================
@@ -140,6 +140,16 @@ def feature_labels_map(cols: List[str]) -> Dict[str, str]:
             labels[c] = c
     return labels
 
+def build_scaler(name: str):
+    """Devolve o scaler escolhido para LinearRegression."""
+    if name.startswith("StandardScaler"):
+        return StandardScaler()
+    if name.startswith("MinMaxScaler"):
+        return MinMaxScaler()
+    if name.startswith("RobustScaler"):
+        return RobustScaler()
+    return StandardScaler()
+
 # ==========================================================
 # Página "Modelos Preditivos" — função principal
 # ==========================================================
@@ -186,7 +196,7 @@ def show():
     st.markdown("<hr style='border: none; height: 1px; background-color: white; margin: 0px 0;'> <br />", unsafe_allow_html=True)
 
     # --- Hiperparâmetros essenciais + scaler ---
-    col_a, _, col_c, col_d = st.columns([1.25, 0.25, 0.75, 0.75])
+    col_a, _, col_c, col_d = st.columns([1.25, 0.25, 0.95, 0.75])
 
     hyper = {}
     with col_a:
@@ -203,10 +213,17 @@ def show():
             hyper["max_depth"]     = st.slider("Profundidade máx (max_depth)", 3, 12, 6)
             hyper["l2"]            = st.slider("Regularização L2", 0.0, 5.0, 1.0, step=0.1)
 
+    # 🔹 Scaler apenas para LinearRegression (opções: Standard, MinMax, Robust)
     with col_c:
-        # Scaler apenas para baseline linear (evitar leakage com árvores não é crítico; elas não exigem escala)
-        escalar = (modelo_nome == "LinearRegression (baseline)")
-        st.checkbox("Aplicar StandardScaler nas features (pipeline)", value=escalar, disabled=True)
+        if modelo_nome == "LinearRegression (baseline)":
+            scaler_tipo = st.selectbox(
+                "Tipo de normalização (aplicada no pipeline)",
+                ["StandardScaler (z-score)", "MinMaxScaler [0,1]", "RobustScaler (mediana/IQR)"],
+                index=0,
+            )
+        else:
+            scaler_tipo = None
+            st.caption("Modelos baseados em árvore não requerem normalização.")
 
     with col_d:
         do_cv = st.checkbox("Validar com TimeSeriesSplit (5 dobras)", value=False)
@@ -242,7 +259,10 @@ def show():
 
     # --- Pipeline, treino e (opcional) CV temporal ---
     base_model = best_model if best_model is not None else model_from_name(modelo_nome, hyper)
-    steps = [("scaler", StandardScaler())] if escalar else []
+
+    steps = []
+    if modelo_nome == "LinearRegression (baseline)":
+        steps.append(("scaler", build_scaler(scaler_tipo)))  # ⬅️ scaler escolhido
     steps.append(("model", base_model))
     pipe = Pipeline(steps)
 
@@ -277,6 +297,9 @@ def show():
     k1.metric("MAE", f"{mae:.3f}")
     k2.metric("RMSE", f"{rmse:.3f}")
     k3.metric("MAPE (%)", f"{mape_val:.2f}")
+
+    if modelo_nome == "LinearRegression (baseline)":
+        st.caption(f"Scaler usado: **{scaler_tipo}**")
 
     # --- Real vs Previsto (janela de teste) ---
     st.markdown("### ⏱️ Real vs. Previsto — Janela de Teste")
