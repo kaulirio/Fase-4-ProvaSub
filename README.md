@@ -21,3 +21,5 @@ A aplicação oferece:
 🚀 Demonstração
 
 🔗 https://fiap-kaue-fase4-provasub.streamlit.app/
+
+P.S.: ATUALIZAR OS DADOS DA BASE IPEA EM CASO DE ERROS.
