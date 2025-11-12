@@ -20,7 +20,4 @@ A aplicação oferece:
 
 🚀 Demonstração
 
-🔗 (Adicione aqui o link da aplicação no Streamlit Cloud quando publicar)
-
-Exemplo:
-https://fiap-kaue-fase4-provasub.streamlit.app/
+🔗 https://fiap-kaue-fase4-provasub.streamlit.app/
